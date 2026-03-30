@@ -16,59 +16,59 @@ export const locations: Location[] = [
   },
   {
     id: 2,
-    name: 'Stairs',
-    floor: '1st Floor',
-    category: 'Facility',
-    description: 'Staircase'
-  },
-  {
-    id: 3,
-    name: 'Lunch Hall',
-    floor: '1st Floor',
-    category: 'Facility',
-    description: 'Cafeteria & Dining Area'
-  },
-  {
-    id: 4,
-    name: 'Washroom',
-    floor: '1st Floor',
-    category: 'Facility',
-    description: 'Washroom'
-  },
-  {
-    id: 5,
     name: 'Small Office',
     floor: '1st Floor',
     category: 'Faculty Room',
     description: 'Administrative Office'
   },
   {
-    id: 6,
-    name: 'Class 1',
+    id: 3,
+    name: 'Washroom',
+    floor: '1st Floor',
+    category: 'Facility',
+    description: 'Washroom'
+  },
+  {
+    id: 4,
+    name: 'Seminar Hall',
     floor: '1st Floor',
     category: 'Classroom',
-    description: 'Classroom 1'
+    description: 'Seminar Room'
+  },
+  {
+    id: 5,
+    name: 'A01',
+    floor: '1st Floor',
+    category: 'Classroom',
+    description: 'Classroom A01'
+  },
+  {
+    id: 6,
+    name: 'A02',
+    floor: '1st Floor',
+    category: 'Classroom',
+    description: 'Classroom A02'
   },
   {
     id: 7,
-    name: 'Class 2',
+    name: 'Stairs',
     floor: '1st Floor',
-    category: 'Classroom',
-    description: 'Classroom 2'
+    category: 'Facility',
+    description: 'Staircase'
   },
   {
     id: 8,
-    name: 'Class 3',
+    name: 'Lift',
     floor: '1st Floor',
-    category: 'Classroom',
-    description: 'Classroom 3'
+    category: 'Facility',
+    description: 'Elevator'
   },
   {
     id: 9,
-    name: 'Class (Large)',
+    name: 'Class Room',
     floor: '1st Floor',
     category: 'Classroom',
-    description: 'Large Lecture Hall'
+    description: 'Main Classroom'
   },
 ];
 

@@ -79,8 +79,8 @@ const Floor: React.FC = () => {
   }, []);
 
   return (
-    <mesh ref={floorRef} position={[0, -0.1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-      <planeGeometry args={[20, 14]} />
+    <mesh ref={floorRef} position={[0, -0.1, 1.75]} rotation={[-Math.PI / 2, 0, 0]}>
+      <planeGeometry args={[22, 16]} />
       <meshStandardMaterial
         color="#E8E8E8"
         side={THREE.DoubleSide}
@@ -100,7 +100,7 @@ const Staircase: React.FC = () => {
   const stepDepth = 0.25;
 
   return (
-    <group position={[0, 0, 1.5]}>
+    <group position={[-4.5, 0, -1.5]}>
       {/* Staircase structure */}
       {Array.from({ length: stepCount }).map((_, i) => (
         <mesh
@@ -122,6 +122,165 @@ const Staircase: React.FC = () => {
       <Text position={[0, 1.5, 0]} fontSize={0.5} color="black" anchorY="middle">
         Stairs
       </Text>
+    </group>
+  );
+};
+
+/**
+ * Entrance component - renders realistic entrance with doors
+ */
+const Entrance: React.FC<{ isDestination?: boolean }> = ({ isDestination }) => {
+  const doorWidth = 0.6;
+  const doorHeight = 2;
+
+  return (
+    <group position={[0, 0, 5]}>
+      {/* Entrance frame */}
+      <mesh position={[0, doorHeight / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[2.5, doorHeight + 0.3, 0.2]} />
+        <meshStandardMaterial
+          color="#8B4513"
+          roughness={0.5}
+          metalness={0.4}
+          emissive={isDestination ? new THREE.Color('#00FF00').multiplyScalar(0.2) : '#000000'}
+          emissiveIntensity={isDestination ? 0.6 : 0}
+        />
+      </mesh>
+
+      {/* Left door */}
+      <mesh position={[-doorWidth / 2, doorHeight / 2, 0.1]} castShadow receiveShadow>
+        <boxGeometry args={[doorWidth, doorHeight, 0.05]} />
+        <meshStandardMaterial
+          color="#4A4A4A"
+          roughness={0.3}
+          metalness={0.7}
+        />
+      </mesh>
+
+      {/* Right door */}
+      <mesh position={[doorWidth / 2, doorHeight / 2, 0.1]} castShadow receiveShadow>
+        <boxGeometry args={[doorWidth, doorHeight, 0.05]} />
+        <meshStandardMaterial
+          color="#4A4A4A"
+          roughness={0.3}
+          metalness={0.7}
+        />
+      </mesh>
+
+      {/* Door handles - left */}
+      <mesh position={[-doorWidth / 2 - 0.08, doorHeight / 2, 0.15]} castShadow>
+        <cylinderGeometry args={[0.05, 0.05, 0.02, 16]} />
+        <meshStandardMaterial color="#FFD700" metalness={1} roughness={0.1} />
+      </mesh>
+
+      {/* Door handles - right */}
+      <mesh position={[doorWidth / 2 + 0.08, doorHeight / 2, 0.15]} castShadow>
+        <cylinderGeometry args={[0.05, 0.05, 0.02, 16]} />
+        <meshStandardMaterial color="#FFD700" metalness={1} roughness={0.1} />
+      </mesh>
+
+      {/* Threshold/step */}
+      <mesh position={[0, 0.05, 0]} castShadow receiveShadow>
+        <boxGeometry args={[2.5, 0.1, 0.3]} />
+        <meshStandardMaterial
+          color="#696969"
+          roughness={0.7}
+          metalness={0}
+        />
+      </mesh>
+
+      {/* Entrance label */}
+      <Text position={[0, doorHeight + 0.6, 0]} fontSize={0.5} color="black" anchorY="bottom">
+        Entrance
+      </Text>
+
+      {/* Green indicator for destination */}
+      {isDestination && (
+        <mesh position={[0, 0.02, -0.15]}>
+          <boxGeometry args={[2.7, 0.04, 0.5]} />
+          <meshStandardMaterial
+            color="#00FF00"
+            emissive="#00FF00"
+            emissiveIntensity={0.7}
+          />
+        </mesh>
+      )}
+    </group>
+  );
+};
+
+/**
+ * Lift (Elevator) component - renders modern lift/elevator
+ */
+const Lift: React.FC<{ isDestination?: boolean }> = ({ isDestination }) => {
+  return (
+    <group position={[4.5, 0, -1.5]}>
+      {/* Lift cabin outer frame */}
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[1.8, 2, 1.8]} />
+        <meshStandardMaterial
+          color="#C0C0C0"
+          roughness={0.3}
+          metalness={0.8}
+          emissive={isDestination ? new THREE.Color('#00FF00').multiplyScalar(0.2) : '#000000'}
+          emissiveIntensity={isDestination ? 0.6 : 0}
+        />
+      </mesh>
+
+      {/* Lift doors - left */}
+      <mesh position={[-0.45, 0.8, 0.05]} castShadow receiveShadow>
+        <boxGeometry args={[0.8, 1.6, 0.05]} />
+        <meshStandardMaterial
+          color="#404040"
+          roughness={0.2}
+          metalness={0.9}
+        />
+      </mesh>
+
+      {/* Lift doors - right */}
+      <mesh position={[0.45, 0.8, 0.05]} castShadow receiveShadow>
+        <boxGeometry args={[0.8, 1.6, 0.05]} />
+        <meshStandardMaterial
+          color="#404040"
+          roughness={0.2}
+          metalness={0.9}
+        />
+      </mesh>
+
+      {/* Button panel */}
+      <mesh position={[-0.85, 0.8, 0]} castShadow>
+        <boxGeometry args={[0.2, 0.6, 0.15]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.6} />
+      </mesh>
+
+      {/* Lift buttons */}
+      {[0, -0.2, -0.4].map((y, i) => (
+        <mesh key={`button-${i}`} position={[-0.8, 1 + y, 0.05]} castShadow>
+          <cylinderGeometry args={[0.08, 0.08, 0.05, 16]} />
+          <meshStandardMaterial
+            color="#FFD700"
+            metalness={1}
+            roughness={0.1}
+          />
+        </mesh>
+      ))}
+
+      {/* Lift label */}
+      <Text position={[0, 1.3, 0]} fontSize={0.4} color="white" anchorY="middle">
+        Lift
+      </Text>
+
+      {/* Green indicator for destination */}
+      {isDestination && (
+        <mesh position={[0, 0.02, -1]}>
+          <boxGeometry args={[2, 0.04, 0.4]} />
+          <meshStandardMaterial
+            color="#00FF00"
+            emissive="#00FF00"
+            emissiveIntensity={0.7}
+          />
+        </mesh>
+      )}
     </group>
   );
 };
@@ -285,13 +444,19 @@ const SceneContent: React.FC<SceneContentProps> = ({ destination, currentRoom = 
       <Lights />
       <Floor />
 
+      {/* Render Entrance */}
+      <Entrance isDestination={destination === 'entrance'} />
+
       {/* Render Staircase */}
       <Staircase />
 
+      {/* Render Lift */}
+      <Lift isDestination={destination === 'lift'} />
+
       {/* Render all rooms */}
       {getAvailableRooms().map((room) => {
-        // Skip stairs - rendered separately with Staircase component
-        if (room.id === 'stairs') {
+        // Skip entrance, stairs, and lift - rendered separately with special components
+        if (room.id === 'entrance' || room.id === 'stairs' || room.id === 'lift') {
           return null;
         }
         return (

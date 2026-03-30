@@ -16,110 +16,110 @@ export interface GraphNode {
   neighbors: string[];
 }
 
-// Define all rooms with positions and sizes - ACCURATE based on floor plan sketch
+// Define all rooms with positions and sizes - CLEAR LAYOUT based on floor description
 export const ROOMS: Record<string, Room> = {
   entrance: {
     id: 'entrance',
     name: 'Entrance',
-    position: [0, 0, 4.5],
-    size: [2.5, 2, 2],
+    position: [0, 0, 5],
+    size: [3, 2, 2.5],
     color: '#FF6B6B',
   },
-  'lunch hall': {
-    id: 'lunch hall',
-    name: 'Lunch Hall',
-    position: [-4, 0, 3],
-    size: [4, 2.5, 4],
+  'seminar hall': {
+    id: 'seminar hall',
+    name: 'Seminar Hall',
+    position: [-4.5, 0, 3],
+    size: [3.5, 2.5, 4],
     color: '#FFC107',
   },
-  stairs: {
-    id: 'stairs',
-    name: 'Stairs',
-    position: [0, 0, 1.5],
-    size: [2, 2, 2],
-    color: '#B0C4DE',
+  'a01': {
+    id: 'a01',
+    name: 'A01',
+    position: [4.5, 0, 3],
+    size: [2.5, 2.5, 3],
+    color: '#45B7D1',
+  },
+  'a02': {
+    id: 'a02',
+    name: 'A02',
+    position: [4.5, 0, 0.5],
+    size: [2.5, 2.5, 3],
+    color: '#45B7D1',
   },
   'small office': {
     id: 'small office',
     name: 'Small Office',
-    position: [-2, 0, 4.5],
-    size: [1.8, 2, 2],
+    position: [-1.5, 0, 5],
+    size: [2, 2, 2],
     color: '#95E1D3',
   },
   washroom: {
     id: 'washroom',
     name: 'Washroom',
-    position: [2.5, 0, 4.5],
-    size: [1.5, 2, 1.8],
+    position: [1.5, 0, 5],
+    size: [2, 2, 2],
     color: '#FFA07A',
   },
-  'class 1': {
-    id: 'class 1',
-    name: 'Class 1',
-    position: [-5, 0, -1.5],
-    size: [2, 2.5, 1.8],
-    color: '#45B7D1',
+  stairs: {
+    id: 'stairs',
+    name: 'Stairs',
+    position: [-4.5, 0, -1.5],
+    size: [2.5, 2, 2.5],
+    color: '#B0C4DE',
   },
-  'class 2': {
-    id: 'class 2',
-    name: 'Class 2',
-    position: [-2.5, 0, -1.5],
-    size: [2, 2.5, 1.8],
-    color: '#45B7D1',
+  lift: {
+    id: 'lift',
+    name: 'Lift',
+    position: [4.5, 0, -1.5],
+    size: [1.8, 2, 1.8],
+    color: '#C0C0C0',
   },
-  'class 3': {
-    id: 'class 3',
-    name: 'Class 3',
+  'class room': {
+    id: 'class room',
+    name: 'Class Room',
     position: [0, 0, -1.5],
-    size: [2, 2.5, 1.8],
-    color: '#45B7D1',
-  },
-  'class (large)': {
-    id: 'class (large)',
-    name: 'Class (Large)',
-    position: [3.5, 0, 0.5],
-    size: [2.5, 2.5, 4.5],
+    size: [3, 2.5, 4],
     color: '#4ECDC4',
   },
 };
 
-// Navigation graph - defines which rooms connect to which (based on floor plan adjacency)
+// Navigation graph - defines which rooms connect to which (based on clear spatial layout)
 export const NAVIGATION_GRAPH: Record<string, GraphNode> = {
   entrance: {
     roomId: 'entrance',
-    neighbors: ['lunch hall', 'stairs'],
+    neighbors: ['small office', 'washroom', 'seminar hall', 'a01', 'class room'],
   },
-  'lunch hall': {
-    roomId: 'lunch hall',
-    neighbors: ['entrance', 'small office'],
+  'seminar hall': {
+    roomId: 'seminar hall',
+    neighbors: ['entrance', 'small office', 'stairs', 'class room'],
   },
-  stairs: {
-    roomId: 'stairs',
-    neighbors: ['entrance', 'washroom', 'small office', 'class 3'],
+  'a01': {
+    roomId: 'a01',
+    neighbors: ['entrance', 'a02', 'washroom', 'lift', 'class room'],
   },
-  washroom: {
-    roomId: 'washroom',
-    neighbors: ['stairs', 'class (large)'],
+  'a02': {
+    roomId: 'a02',
+    neighbors: ['a01', 'lift', 'class room'],
   },
   'small office': {
     roomId: 'small office',
-    neighbors: ['lunch hall', 'stairs', 'class 2'],
+    neighbors: ['entrance', 'seminar hall', 'stairs'],
   },
-  'class 1': {
-    roomId: 'class 1',
-    neighbors: ['class 2'],
+  washroom: {
+    roomId: 'washroom',
+    neighbors: ['entrance', 'a01', 'lift'],
   },
-  'class 2': {
-    roomId: 'class 2',
-    neighbors: ['class 1', 'small office', 'class 3'],
+  stairs: {
+    roomId: 'stairs',
+    neighbors: ['seminar hall', 'small office', 'class room'],
   },
-  'class 3': {
-    roomId: 'class 3',
-    neighbors: ['class 2', 'stairs', 'class (large)'],
+  lift: {
+    roomId: 'lift',
+    neighbors: ['a01', 'a02', 'washroom', 'class room'],
   },
-  'class (large)': {
-    roomId: 'class (large)',
-    neighbors: ['washroom', 'class 3'],
+  'class room': {
+    roomId: 'class room',
+    neighbors: ['entrance', 'seminar hall', 'a01', 'a02', 'stairs', 'lift'],
   },
 };
 
