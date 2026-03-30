@@ -8,7 +8,7 @@ import React from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Text, Line } from '@react-three/drei';
 import * as THREE from 'three';
-import { findPath, pathTo3DCoordinates, getAvailableRooms } from '../utils/navigationGraph';
+import { findPath, pathTo3DCoordinates, getAvailableRooms, type Room } from '../utils/navigationGraph';
 
 interface Navigation3DProps {
   destination?: string; // Room ID of the destination
@@ -454,7 +454,7 @@ const SceneContent: React.FC<SceneContentProps> = ({ destination, currentRoom = 
       <Lift isDestination={destination === 'lift'} />
 
       {/* Render all rooms */}
-      {getAvailableRooms().map((room) => {
+      {getAvailableRooms().map((room: Room) => {
         // Skip entrance, stairs, and lift - rendered separately with special components
         if (room.id === 'entrance' || room.id === 'stairs' || room.id === 'lift') {
           return null;
