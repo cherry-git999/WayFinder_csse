@@ -16,77 +16,110 @@ export interface GraphNode {
   neighbors: string[];
 }
 
-// Define all rooms with positions and sizes
+// Define all rooms with positions and sizes - ACCURATE based on floor plan sketch
 export const ROOMS: Record<string, Room> = {
   entrance: {
     id: 'entrance',
     name: 'Entrance',
-    position: [0, 0, 0],
-    size: [3, 2, 3],
+    position: [0, 0, 4.5],
+    size: [2.5, 2, 2],
     color: '#FF6B6B',
   },
-  lab: {
-    id: 'lab',
-    name: 'Lab',
-    position: [6, 0, 0],
+  'lunch hall': {
+    id: 'lunch hall',
+    name: 'Lunch Hall',
+    position: [-4, 0, 3],
     size: [4, 2.5, 4],
-    color: '#4ECDC4',
+    color: '#FFC107',
   },
-  classroom: {
-    id: 'classroom',
-    name: 'Classroom',
-    position: [6, 0, -8],
-    size: [5, 2.5, 4],
-    color: '#45B7D1',
+  stairs: {
+    id: 'stairs',
+    name: 'Stairs',
+    position: [0, 0, 1.5],
+    size: [2, 2, 2],
+    color: '#B0C4DE',
+  },
+  'small office': {
+    id: 'small office',
+    name: 'Small Office',
+    position: [-2, 0, 4.5],
+    size: [1.8, 2, 2],
+    color: '#95E1D3',
   },
   washroom: {
     id: 'washroom',
     name: 'Washroom',
-    position: [0, 0, -6],
-    size: [2, 2, 2],
+    position: [2.5, 0, 4.5],
+    size: [1.5, 2, 1.8],
     color: '#FFA07A',
   },
-  faculty: {
-    id: 'faculty',
-    name: 'Faculty Room',
-    position: [-6, 0, 0],
-    size: [4, 2.5, 3],
-    color: '#95E1D3',
+  'class 1': {
+    id: 'class 1',
+    name: 'Class 1',
+    position: [-5, 0, -1.5],
+    size: [2, 2.5, 1.8],
+    color: '#45B7D1',
   },
-  cafeteria: {
-    id: 'cafeteria',
-    name: 'Cafeteria',
-    position: [8, 0, 5],
-    size: [5, 2.5, 4],
-    color: '#FFC107',
+  'class 2': {
+    id: 'class 2',
+    name: 'Class 2',
+    position: [-2.5, 0, -1.5],
+    size: [2, 2.5, 1.8],
+    color: '#45B7D1',
+  },
+  'class 3': {
+    id: 'class 3',
+    name: 'Class 3',
+    position: [0, 0, -1.5],
+    size: [2, 2.5, 1.8],
+    color: '#45B7D1',
+  },
+  'class (large)': {
+    id: 'class (large)',
+    name: 'Class (Large)',
+    position: [3.5, 0, 0.5],
+    size: [2.5, 2.5, 4.5],
+    color: '#4ECDC4',
   },
 };
 
-// Navigation graph - defines which rooms connect to which
+// Navigation graph - defines which rooms connect to which (based on floor plan adjacency)
 export const NAVIGATION_GRAPH: Record<string, GraphNode> = {
   entrance: {
     roomId: 'entrance',
-    neighbors: ['lab', 'washroom', 'faculty'],
+    neighbors: ['lunch hall', 'stairs'],
   },
-  lab: {
-    roomId: 'lab',
-    neighbors: ['entrance', 'classroom', 'washroom'],
+  'lunch hall': {
+    roomId: 'lunch hall',
+    neighbors: ['entrance', 'small office'],
   },
-  classroom: {
-    roomId: 'classroom',
-    neighbors: ['lab'],
+  stairs: {
+    roomId: 'stairs',
+    neighbors: ['entrance', 'washroom', 'small office', 'class 3'],
   },
   washroom: {
     roomId: 'washroom',
-    neighbors: ['entrance', 'lab'],
+    neighbors: ['stairs', 'class (large)'],
   },
-  faculty: {
-    roomId: 'faculty',
-    neighbors: ['entrance'],
+  'small office': {
+    roomId: 'small office',
+    neighbors: ['lunch hall', 'stairs', 'class 2'],
   },
-  cafeteria: {
-    roomId: 'cafeteria',
-    neighbors: ['entrance', 'lab', 'classroom'],
+  'class 1': {
+    roomId: 'class 1',
+    neighbors: ['class 2'],
+  },
+  'class 2': {
+    roomId: 'class 2',
+    neighbors: ['class 1', 'small office', 'class 3'],
+  },
+  'class 3': {
+    roomId: 'class 3',
+    neighbors: ['class 2', 'stairs', 'class (large)'],
+  },
+  'class (large)': {
+    roomId: 'class (large)',
+    neighbors: ['washroom', 'class 3'],
   },
 };
 

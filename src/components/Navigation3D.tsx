@@ -3,10 +3,10 @@
  * Displays an interactive 3D floor plan with room navigation
  */
 
-import { useEffect, useRef, ReactNode } from 'react';
+import { useEffect, useRef, ReactNode, useState } from 'react';
 import React from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Text } from '@react-three/drei';
+import { OrbitControls, Text, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { findPath, pathTo3DCoordinates, getAvailableRooms } from '../utils/navigationGraph';
 
@@ -70,11 +70,59 @@ class ErrorBoundary extends React.Component<{ children: ReactNode }, { hasError:
  * Floor component - renders the ground plane
  */
 const Floor: React.FC = () => {
+  const floorRef = useRef<THREE.Mesh>(null);
+
+  useEffect(() => {
+    if (floorRef.current) {
+      floorRef.current.receiveShadow = true;
+    }
+  }, []);
+
   return (
-    <mesh position={[0, -0.1, -3]} rotation={[-Math.PI / 2, 0, 0]}>
-      <planeGeometry args={[25, 20]} />
-      <meshStandardMaterial color="#E8E8E8" />
+    <mesh ref={floorRef} position={[0, -0.1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <planeGeometry args={[20, 14]} />
+      <meshStandardMaterial
+        color="#E8E8E8"
+        side={THREE.DoubleSide}
+        roughness={0.8}
+        metalness={0}
+      />
     </mesh>
+  );
+};
+
+/**
+ * Staircase component - renders visible stairs
+ */
+const Staircase: React.FC = () => {
+  const stepCount = 8;
+  const stepHeight = 0.25;
+  const stepDepth = 0.25;
+
+  return (
+    <group position={[0, 0, 1.5]}>
+      {/* Staircase structure */}
+      {Array.from({ length: stepCount }).map((_, i) => (
+        <mesh
+          key={`step-${i}`}
+          position={[0, stepHeight * (i + 0.5), stepDepth * (i - stepCount / 2)]}
+          castShadow
+          receiveShadow
+        >
+          <boxGeometry args={[2, stepHeight, stepDepth]} />
+          <meshStandardMaterial
+            color="#888888"
+            roughness={0.6}
+            metalness={0.3}
+          />
+        </mesh>
+      ))}
+
+      {/* Staircase label */}
+      <Text position={[0, 1.5, 0]} fontSize={0.5} color="black" anchorY="middle">
+        Stairs
+      </Text>
+    </group>
   );
 };
 
@@ -93,16 +141,32 @@ interface RoomProps {
 const Room: React.FC<RoomProps> = ({ roomId, name, position, size, color, isDestination }) => {
   const [x, y, z] = position;
   const [width, height, depth] = size;
+  const meshRef = useRef<THREE.Mesh>(null);
+  const [hovered, setHovered] = useState(false);
+
+  useEffect(() => {
+    if (meshRef.current) {
+      meshRef.current.castShadow = true;
+      meshRef.current.receiveShadow = true;
+    }
+  }, []);
 
   return (
     <group position={[x, y, z]}>
       {/* Room box */}
-      <mesh>
+      <mesh
+        ref={meshRef}
+        onPointerEnter={() => setHovered(true)}
+        onPointerLeave={() => setHovered(false)}
+        scale={hovered ? 1.05 : 1}
+      >
         <boxGeometry args={[width, height, depth]} />
         <meshStandardMaterial
           color={color}
-          emissive={isDestination ? new THREE.Color(color).multiplyScalar(0.5) : '#000000'}
-          emissiveIntensity={isDestination ? 0.8 : 0}
+          emissive={isDestination ? new THREE.Color('#00FF00').multiplyScalar(0.3) : hovered ? new THREE.Color(color).multiplyScalar(0.3) : '#000000'}
+          emissiveIntensity={isDestination ? 0.8 : hovered ? 0.5 : 0}
+          roughness={0.7}
+          metalness={0.2}
         />
       </mesh>
 
@@ -112,6 +176,7 @@ const Room: React.FC<RoomProps> = ({ roomId, name, position, size, color, isDest
         fontSize={0.6}
         color="black"
         anchorY="bottom"
+        maxWidth={width}
       >
         {name}
       </Text>
@@ -125,6 +190,18 @@ const Room: React.FC<RoomProps> = ({ roomId, name, position, size, color, isDest
       >
         ({roomId})
       </Text>
+
+      {/* Destination indicator - green highlight */}
+      {isDestination && (
+        <mesh position={[0, height / 2 + 0.02, 0]}>
+          <boxGeometry args={[width + 0.3, 0.05, depth + 0.3]} />
+          <meshStandardMaterial
+            color="#00FF00"
+            emissive="#00FF00"
+            emissiveIntensity={0.6}
+          />
+        </mesh>
+      )}
     </group>
   );
 };
@@ -137,28 +214,17 @@ interface NavigationPathProps {
 }
 
 const NavigationPath: React.FC<NavigationPathProps> = ({ pathPoints }) => {
-  const geometryRef = useRef<THREE.BufferGeometry>(null);
-
-  useEffect(() => {
-    if (!geometryRef.current || pathPoints.length < 2) {
-      return;
-    }
-
-    const points: THREE.Vector3[] = pathPoints.map(([x, y, z]) => new THREE.Vector3(x, y, z));
-    const positions = new Float32Array(points.flatMap((p) => [p.x, p.y, p.z]));
-
-    geometryRef.current.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  }, [pathPoints]);
-
   if (pathPoints.length < 2) {
     return null;
   }
 
   return (
-    <line>
-      <bufferGeometry ref={geometryRef} />
-      <lineBasicMaterial color="#FFD700" linewidth={5} />
-    </line>
+    <Line
+      points={pathPoints}
+      color="#FF0000"
+      lineWidth={4}
+      dashed={false}
+    />
   );
 };
 
@@ -169,20 +235,24 @@ const Lights: React.FC = () => {
   return (
     <>
       {/* Ambient light for overall illumination */}
-      <ambientLight intensity={0.6} />
+      <ambientLight intensity={0.75} />
 
       {/* Directional light for shadows and contrast */}
       <directionalLight
-        position={[10, 15, 10]}
-        intensity={0.8}
+        position={[8, 12, 8]}
+        intensity={1}
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
-        shadow-camera-left={-20}
-        shadow-camera-right={20}
-        shadow-camera-top={20}
-        shadow-camera-bottom={-20}
+        shadow-camera-left={-15}
+        shadow-camera-right={15}
+        shadow-camera-top={15}
+        shadow-camera-bottom={-15}
+        shadow-camera-far={50}
       />
+
+      {/* Fill light for better room visibility */}
+      <pointLight position={[-8, 10, -8]} intensity={0.5} />
     </>
   );
 };
@@ -215,18 +285,27 @@ const SceneContent: React.FC<SceneContentProps> = ({ destination, currentRoom = 
       <Lights />
       <Floor />
 
+      {/* Render Staircase */}
+      <Staircase />
+
       {/* Render all rooms */}
-      {getAvailableRooms().map((room) => (
-        <Room
-          key={room.id}
-          roomId={room.id}
-          name={room.name}
-          position={room.position}
-          size={room.size}
-          color={room.color}
-          isDestination={room.id === destination}
-        />
-      ))}
+      {getAvailableRooms().map((room) => {
+        // Skip stairs - rendered separately with Staircase component
+        if (room.id === 'stairs') {
+          return null;
+        }
+        return (
+          <Room
+            key={room.id}
+            roomId={room.id}
+            name={room.name}
+            position={room.position}
+            size={room.size}
+            color={room.color}
+            isDestination={room.id === destination}
+          />
+        );
+      })}
 
       {/* Render navigation path */}
       <NavigationPath pathPoints={pathPointsRef.current} />
@@ -255,11 +334,12 @@ export const Navigation3D: React.FC<Navigation3DProps> = ({
       <div style={{ width: '100%', height: '100%' }}>
         <Canvas
           camera={{
-            position: [10, 12, 15],
+            position: [8, 10, 8],
             fov: 50,
             near: 0.1,
             far: 1000,
           }}
+          shadows="basic"
           style={{
             width: '100%',
             height: '100%',
