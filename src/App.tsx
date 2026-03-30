@@ -5,6 +5,7 @@ import { HomePage } from './pages/HomePage';
 import { SearchResultsPage } from './pages/SearchResultsPage';
 import { NavigationPage } from './pages/NavigationPage';
 import { QRScanPage } from './pages/QRScanPage';
+import { CameraSearchPage } from './pages/CameraSearchPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { Navigation3DPage } from './pages/Navigation3DPage';
 import { ARMapPage } from './pages/ARMapPage';
@@ -21,6 +22,7 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/search" element={<SearchResultsPage />} />
               <Route path="/navigation" element={<NavigationPage />} />
+              <Route path="/camera-search" element={<CameraSearchPage />} />
               <Route path="/test-3d" element={<Test3DPage />} />
               <Route path="/navigation-3d" element={<Navigation3DPage />} />
               <Route path="/ar-map" element={<ARMapPage />} />
