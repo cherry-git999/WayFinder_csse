@@ -1,7 +1,11 @@
 /**
- * AR Navigation Component
- * Displays camera feed with animated arrow overlay for navigation
- * No WebXR - uses getUserMedia for real camera feed
+ * AR Navigation Component - Lightweight Arrow Overlay System
+ * Features:
+ * - Real camera feed (getUserMedia)
+ * - Smooth arrow overlay on top
+ * - Perspective-based depth scaling
+ * - Direction support (forward, left, right)
+ * - No WebXR or Three.js dependencies
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -36,6 +40,7 @@ export const ARNavigation: React.FC<ARNavigationProps> = ({
   
   const [isARReady, setIsARReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const lastDirectionRef = useRef<ArrowDirection>('forward');
 
   // Initialize camera and overlay
   useEffect(() => {
@@ -133,94 +138,101 @@ export const ARNavigation: React.FC<ARNavigationProps> = ({
     arrowsRef.current = [];
     nextArrowTimeRef.current = Date.now();
 
-    const ARROW_SPEED = 1.5; // pixels per frame
-    const ARROW_SPAWN_INTERVAL = 300; // ms between arrows
-    const GLOW_COLOR = '#00ff41'; // Neon green
-    const GLOW_COLOR_TURN = '#00e5ff'; // Neon cyan
+    // Configuration
+    const ARROW_SPEED = 1.8; // pixels per frame (smooth movement)
+    const ARROW_SPAWN_INTERVAL = 280; // ms between arrows
+    const FORWARD_COLOR = '#00ff41'; // Neon green
+    const TURN_COLOR = '#00e5ff'; // Neon cyan
+    const MIN_GLOW = 8;
+    const MAX_GLOW = 25;
 
-    const drawArrow = (
+    /**
+     * Draw a thick chevron arrow with glow effect
+     */
+    const drawChevronArrow = (
       ctx: CanvasRenderingContext2D,
       x: number,
       y: number,
       direction: ArrowDirection,
       scale: number,
-      opacity: number
+      opacity: number,
+      blur: number
     ) => {
       ctx.save();
       ctx.globalAlpha = opacity;
       ctx.translate(x, y);
       ctx.scale(scale, scale);
 
-      const arrowSize = 40;
-      const color = direction === 'forward' ? GLOW_COLOR : GLOW_COLOR_TURN;
+      const baseSize = 50; // Base arrow size
+      const thickness = 8; // Thickness of the chevron lines
+      const isTurn = direction !== 'forward';
+      const color = isTurn ? TURN_COLOR : FORWARD_COLOR;
 
-      // Draw glow effect
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 15;
-      ctx.fillStyle = color;
+      // Set drawing properties
       ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
+      ctx.fillStyle = color;
+      ctx.lineWidth = thickness;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
 
-      switch (direction) {
-        case 'forward':
-          // Upward arrow
-          ctx.beginPath();
-          ctx.moveTo(0, -arrowSize);
-          ctx.lineTo(-arrowSize * 0.4, arrowSize * 0.2);
-          ctx.lineTo(-arrowSize * 0.15, arrowSize * 0.2);
-          ctx.lineTo(-arrowSize * 0.15, arrowSize * 0.7);
-          ctx.lineTo(arrowSize * 0.15, arrowSize * 0.7);
-          ctx.lineTo(arrowSize * 0.15, arrowSize * 0.2);
-          ctx.lineTo(arrowSize * 0.4, arrowSize * 0.2);
-          ctx.closePath();
-          break;
+      // Apply glow effect
+      ctx.shadowColor = color;
+      ctx.shadowBlur = blur;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
 
-        case 'left':
-          // Left arrow
-          ctx.beginPath();
-          ctx.moveTo(-arrowSize, 0);
-          ctx.lineTo(arrowSize * 0.2, -arrowSize * 0.4);
-          ctx.lineTo(arrowSize * 0.2, -arrowSize * 0.15);
-          ctx.lineTo(arrowSize * 0.7, -arrowSize * 0.15);
-          ctx.lineTo(arrowSize * 0.7, arrowSize * 0.15);
-          ctx.lineTo(arrowSize * 0.2, arrowSize * 0.15);
-          ctx.lineTo(arrowSize * 0.2, arrowSize * 0.4);
-          ctx.closePath();
-          break;
+      // Rotation for turn directions
+      let rotation = 0;
+      if (direction === 'left') rotation = Math.PI / 2;
+      if (direction === 'right') rotation = -Math.PI / 2;
 
-        case 'right':
-          // Right arrow
-          ctx.beginPath();
-          ctx.moveTo(arrowSize, 0);
-          ctx.lineTo(-arrowSize * 0.2, -arrowSize * 0.4);
-          ctx.lineTo(-arrowSize * 0.2, -arrowSize * 0.15);
-          ctx.lineTo(-arrowSize * 0.7, -arrowSize * 0.15);
-          ctx.lineTo(-arrowSize * 0.7, arrowSize * 0.15);
-          ctx.lineTo(-arrowSize * 0.2, arrowSize * 0.15);
-          ctx.lineTo(-arrowSize * 0.2, arrowSize * 0.4);
-          ctx.closePath();
-          break;
+      if (rotation !== 0) {
+        ctx.translate(0, 0);
+        ctx.rotate(rotation);
       }
 
-      ctx.fill();
+      // Draw thick chevron arrow pointing UP
+      ctx.beginPath();
+
+      // Left line of chevron
+      ctx.moveTo(-baseSize * 0.35, baseSize * 0.3);
+      ctx.lineTo(0, baseSize * 0.55);
+
+      // Right line of chevron
+      ctx.lineTo(baseSize * 0.35, baseSize * 0.3);
+
       ctx.stroke();
+
+      // Optional: Add a subtle fill for extra glow effect
+      ctx.globalAlpha = opacity * 0.15;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(-baseSize * 0.35, baseSize * 0.3);
+      ctx.lineTo(0, baseSize * 0.55);
+      ctx.lineTo(baseSize * 0.35, baseSize * 0.3);
+      ctx.quadraticCurveTo(0, baseSize * 0.2, -baseSize * 0.35, baseSize * 0.3);
+      ctx.fill();
+
       ctx.restore();
     };
 
-    const animate = (timestamp: number) => {
-      // Clear canvas
+    /**
+     * Animation loop - render and update arrows
+     */
+    const animate = () => {
+      // Clear canvas for next frame
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Spawn new arrow if interval elapsed
+      // Spawn new arrow if spawn interval elapsed
       const now = Date.now();
       if (now - nextArrowTimeRef.current > ARROW_SPAWN_INTERVAL) {
         const dir = directions[directionIndexRef.current % directions.length];
-        const arrowId = `arrow-${timestamp}`;
+        lastDirectionRef.current = dir;
         arrowsRef.current.push({
-          id: arrowId,
+          id: `arrow-${now}-${directionIndexRef.current}`,
           direction: dir,
-          depth: -0.5, // Start above top
-          createdAt: timestamp,
+          depth: -0.4, // Start above top
+          createdAt: now,
         });
         directionIndexRef.current++;
         nextArrowTimeRef.current = now;
@@ -228,27 +240,42 @@ export const ARNavigation: React.FC<ARNavigationProps> = ({
 
       // Update and draw arrows
       const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
       const arrowsToRemove: string[] = [];
 
       arrowsRef.current.forEach((arrow) => {
-        // Move arrow downward
-        arrow.depth += ARROW_SPEED / canvas.height;
+        // Move arrow downward continuously
+        arrow.depth += ARROW_SPEED / (canvas.height * 0.25);
 
-        // Calculate perspective effect
-        const screenDepth = arrow.depth;
-        const perspective = 0.3 + (1 - Math.max(0, screenDepth) ** 2) * 0.7;
-        const opacity = Math.max(0, 0.4 + (1 - Math.max(0, screenDepth)) * 0.6);
+        // Calculate perspective effect - arrows scale up as they approach bottom
+        const normalizedDepth = Math.max(0, Math.min(1, arrow.depth)); // Clamp 0-1
+        const perspectiveScale = 0.45 + normalizedDepth * 0.8; // Scale from 0.45 to 1.25
 
-        // Calculate screen position
-        const screenY = canvas.height * (0.5 + screenDepth * 0.4);
-        const scale = perspective;
+        // Opacity decreases for far (top) arrows
+        const opacity = Math.max(0, Math.min(1, 0.35 + normalizedDepth * 0.75));
 
-        if (screenY > canvas.height + 100) {
+        // Calculate blur - top arrows more blurred
+        const glowBlur = MIN_GLOW + (1 - normalizedDepth) * (MAX_GLOW - MIN_GLOW);
+
+        // Calculate screen Y position (bottom = close, top = far)
+        const screenY = centerY + (normalizedDepth - 0.5) * canvas.height * 0.55;
+
+        // Remove arrows that have scrolled past bottom
+        if (screenY > canvas.height + 200) {
           arrowsToRemove.push(arrow.id);
           return;
         }
 
-        drawArrow(ctx, centerX, screenY, arrow.direction, scale, opacity);
+        // Draw the arrow
+        drawChevronArrow(
+          ctx,
+          centerX,
+          screenY,
+          arrow.direction,
+          perspectiveScale,
+          opacity,
+          glowBlur
+        );
       });
 
       // Remove off-screen arrows
@@ -256,9 +283,11 @@ export const ARNavigation: React.FC<ARNavigationProps> = ({
         (a) => !arrowsToRemove.includes(a.id)
       );
 
+      // Continue animation loop
       animationFrameRef.current = requestAnimationFrame(animate);
     };
 
+    // Start animation
     animationFrameRef.current = requestAnimationFrame(animate);
 
     // Handle window resize
@@ -319,17 +348,30 @@ export const ARNavigation: React.FC<ARNavigationProps> = ({
       ref={containerRef}
       className="fixed inset-0 w-full h-screen overflow-hidden bg-black"
     >
-      {/* Close Button */}
+      {/* Instruction Label - Top Center */}
+      <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-30 px-6 py-2 rounded-full bg-black/40 backdrop-blur-md border border-cyan-400/30 text-cyan-300 font-semibold text-sm">
+        📱 Point camera at the floor
+      </div>
+
+      {/* AR Status - Bottom Left */}
+      <div className="absolute bottom-6 left-6 z-30 px-4 py-3 bg-green-500/20 border-2 border-green-400 rounded-lg text-green-300 font-semibold backdrop-blur-sm flex items-center space-x-2">
+        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+        <span>⚡ AR Navigation Active</span>
+      </div>
+
+      {/* Exit Button - Top Left */}
       <button
         onClick={onClose}
-        className="absolute top-4 left-4 z-30 px-4 py-2 bg-black/50 hover:bg-black/70 text-white rounded-lg font-semibold backdrop-blur-sm transition-all"
+        className="absolute top-6 left-6 z-30 px-4 py-2 bg-black/60 hover:bg-black/80 text-white rounded-lg font-semibold backdrop-blur-sm transition-all border border-gray-600/50"
       >
         ← Exit
       </button>
 
-      {/* AR Status */}
-      <div className="absolute bottom-4 left-4 z-30 px-4 py-2 bg-green-500/20 border-2 border-green-400 rounded-lg text-green-300 font-semibold backdrop-blur-sm">
-        ✓ Navigation Active
+      {/* Arrow sequence indicator - Bottom Right */}
+      <div className="absolute bottom-6 right-6 z-30 px-4 py-2 bg-black/40 backdrop-blur-md border border-gray-600/30 rounded-lg text-gray-300 text-xs font-mono">
+        {lastDirectionRef.current === 'forward' && '◀ Continue Forward'}
+        {lastDirectionRef.current === 'left' && '◀ Turn Left'}
+        {lastDirectionRef.current === 'right' && '▶ Turn Right'}
       </div>
     </div>
   );

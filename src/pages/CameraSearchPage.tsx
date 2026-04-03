@@ -349,13 +349,13 @@ export const CameraSearchPage = () => {
                 )}
               </div>
 
-              {/* AR Launch Button */}
+              {/* AR Navigation Launch Button */}
               <button
                 onClick={handleLaunchAR}
-                className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-lg transition-all"
+                className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-cyan-600 to-green-600 hover:from-cyan-700 hover:to-green-700 text-white font-bold rounded-lg transition-all"
               >
                 <Zap className="w-5 h-5" />
-                <span>⚡ Launch WebXR AR (Beta)</span>
+                <span>→ Start AR Navigation</span>
               </button>
             </div>
 
@@ -443,13 +443,13 @@ export const CameraSearchPage = () => {
             )}
           </div>
 
-          {/* AR Launch Button */}
+          {/* AR Navigation Launch Button */}
           <button
             onClick={handleLaunchAR}
-            className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-lg transition-all text-sm"
+            className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-green-600 hover:from-cyan-700 hover:to-green-700 text-white font-bold rounded-lg transition-all text-sm"
           >
             <Zap className="w-4 h-4" />
-            <span>⚡ WebXR AR</span>
+            <span>→ Start AR Navigation</span>
           </button>
 
           {/* Edit Locations Button */}
