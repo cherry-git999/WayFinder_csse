@@ -96,6 +96,7 @@ export const ARNavigation: React.FC<ARNavigationProps> = ({
 
         // Create scene
         const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
         sceneRef.current = scene;
 
         // Add lighting
@@ -103,13 +104,15 @@ export const ARNavigation: React.FC<ARNavigationProps> = ({
 
         // Create arrow path
         const arrowGroup = createArrowPath(directions);
-        arrowGroup.position.z = -2.5; // 2.5 meters ahead
-        arrowGroup.position.y = -0.05; // Slightly below eye level (on floor)
+        arrowGroup.position.z = -1.5; // 1.5 meters ahead
+        arrowGroup.position.y = -0.2; // Slightly below eye level
+        arrowGroup.position.x = 0;
         scene.add(arrowGroup);
         arrowGroupRef.current = arrowGroup;
 
-        // Add floor reference
+        // Add floor reference (semi-transparent)
         const floor = createFloorPlane();
+        floor.position.y = -0.5; // Below the arrows
         scene.add(floor);
 
         console.log('Scene objects created');
@@ -122,11 +125,15 @@ export const ARNavigation: React.FC<ARNavigationProps> = ({
           referenceSpace = await (session as any).requestReferenceSpace('local');
         }
 
+        // Create a default camera
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 0;
+
         // Animation loop
         const renderFrame = (time: number, frame: XRFrame) => {
           try {
             const session = frame.session;
-            const baseLayer = session.renderState.baseLayer;
+            const baseLayer = session.renderState.baseLayer as any;
             
             if (!baseLayer) {
               console.warn('No base layer available');
@@ -141,34 +148,23 @@ export const ARNavigation: React.FC<ARNavigationProps> = ({
                 updateArrowGlow(arrowGroupRef.current, time / 1000);
               }
 
-              // Render each view
-              pose.views.forEach((view: any) => {
-                const viewport = baseLayer.getViewport(view);
-                
-                if (!viewport) {
-                  console.warn('No viewport for view');
-                  return;
-                }
+              // Simple render for all views
+              const view = pose.views[0];
+              camera.projectionMatrix.fromArray(view.projectionMatrix);
+              
+              // Apply view pose to camera
+              const viewMatrix = new THREE.Matrix4().fromArray(
+                view.transform.inverse.matrix
+              );
+              camera.matrix.copy(viewMatrix);
+              camera.matrix.decompose(
+                camera.position,
+                camera.quaternion,
+                camera.scale
+              );
 
-                // Create a temp camera for this view
-                const camera = new THREE.PerspectiveCamera();
-                camera.projectionMatrix.fromArray(view.projectionMatrix);
-                
-                // Apply view transform
-                const viewMatrix = new THREE.Matrix4().fromArray(
-                  view.transform.inverse.matrix
-                );
-                camera.matrix.copy(viewMatrix);
-                camera.matrix.decompose(
-                  camera.position,
-                  camera.quaternion,
-                  camera.scale
-                );
-
-                // Set viewport and render
-                gl.viewport(viewport.x, viewport.y, viewport.width, viewport.height);
-                renderer.render(scene, camera);
-              });
+              // Render the scene
+              renderer.render(scene, camera);
             }
           } catch (err) {
             console.error('Render frame error:', err);
