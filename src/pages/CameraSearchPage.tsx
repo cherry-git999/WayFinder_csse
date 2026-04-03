@@ -1,23 +1,20 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, MapPin, CheckCircle, Navigation, ArrowLeft, ArrowRight, AlertCircle } from 'lucide-react';
+import { Camera, MapPin, Navigation, ArrowLeft, ArrowRight, AlertCircle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { locations } from '../data/locations';
+import { ARArrowOverlay } from '../components/ARArrowOverlay';
 
 export const CameraSearchPage = () => {
   const navigate = useNavigate();
   const { setSelectedDestination, setCurrentLocation } = useApp();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   
   const [step, setStep] = useState<'select-locations' | 'camera'>('select-locations');
   const [fromLocation, setFromLocation] = useState<typeof locations[0] | null>(null);
   const [toLocation, setToLocation] = useState<typeof locations[0] | null>(null);
   const [isScanning, setIsScanning] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState<typeof locations[0] | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const [detectionMarker, setDetectionMarker] = useState<typeof locations[0] | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
   // Start real camera feed
@@ -25,7 +22,6 @@ export const CameraSearchPage = () => {
     try {
       setCameraError(null);
       setIsScanning(true);
-      setDetectionMarker(null);
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment' },
@@ -38,16 +34,6 @@ export const CameraSearchPage = () => {
         videoRef.current.srcObject = stream;
         videoRef.current.play();
       }
-
-      // Simulate detection after camera is on
-      setTimeout(() => {
-        if (toLocation) {
-          setDetectionMarker(toLocation);
-          setSelectedLocation(toLocation);
-          setIsScanning(false);
-          setShowSuccess(true);
-        }
-      }, 3000);
     } catch (error: any) {
       setCameraError(
         error.name === 'NotAllowedError'
@@ -65,8 +51,6 @@ export const CameraSearchPage = () => {
       streamRef.current = null;
     }
     setIsScanning(false);
-    setShowSuccess(false);
-    setDetectionMarker(null);
     setCameraError(null);
   };
 
@@ -103,16 +87,12 @@ export const CameraSearchPage = () => {
   const handleEditLocations = () => {
     stopCamera();
     setStep('select-locations');
-    setSelectedLocation(null);
-    setShowSuccess(false);
   };
 
   const handleBack = () => {
     if (step === 'camera') {
       stopCamera();
       setStep('select-locations');
-      setSelectedLocation(null);
-      setShowSuccess(false);
     } else {
       navigate(-1);
     }
@@ -291,24 +271,15 @@ export const CameraSearchPage = () => {
                 playsInline
               />
               
-              {/* Detection Overlay */}
-              {detectionMarker && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="animate-pulse">
-                    <div className="w-48 h-48 border-4 border-green-400 rounded-lg flex items-center justify-center">
-                      <div className="text-center">
-                        <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-2" />
-                        <p className="text-green-400 font-bold text-sm">{detectionMarker.name}</p>
-                      </div>
-                    </div>
+              {/* AR Arrow Navigation Overlay - Always visible when scanning */}
+              <ARArrowOverlay isActive={isScanning} pathNodes={8} animationSpeed={2} perspectiveIntensity={1} />
+              
+              {/* Status Text */}
+              {isScanning && (
+                <div className="absolute inset-0 flex items-end pb-6 pl-6 pointer-events-none">
+                  <div className="bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2">
+                    <p className="text-sm font-semibold text-cyan-300">🔄 AR NAVIGATION ACTIVE</p>
                   </div>
-                </div>
-              )}
-
-              {/* Scanning Indicator */}
-              {isScanning && !detectionMarker && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="border-4 border-transparent border-t-blue-400 border-r-blue-400 w-32 h-32 rounded-full animate-spin" />
                 </div>
               )}
             </div>
@@ -325,45 +296,23 @@ export const CameraSearchPage = () => {
             )}
 
             {/* Status Text */}
-            {isScanning && !detectionMarker && (
-              <p className="text-lg font-semibold text-blue-600 dark:text-blue-400 mb-6 animate-pulse">
-                Opening camera and detecting location...
+            {isScanning && (
+              <p className="text-lg font-semibold text-cyan-600 dark:text-cyan-400 mb-6 animate-pulse">
+                🎯 Point camera at path • Arrows show navigation
               </p>
-            )}
-
-            {/* Success Message */}
-            {showSuccess && selectedLocation && (
-              <div className="bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-800 rounded-xl p-6 mb-6 w-full">
-                <div className="flex items-center justify-center space-x-2 mb-4">
-                  <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
-                  <h3 className="text-xl font-bold text-green-900 dark:text-green-300">
-                    Location Detected!
-                  </h3>
-                </div>
-                <div className="text-center">
-                  <p className="text-gray-700 dark:text-gray-300 mb-1">Destination confirmed via camera:</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                    {selectedLocation.name}
-                  </p>
-                  <p className="text-gray-600 dark:text-gray-400 flex items-center justify-center">
-                    <MapPin className="w-4 h-4 mr-1" />
-                    {selectedLocation.floor}
-                  </p>
-                </div>
-              </div>
             )}
 
             {/* Buttons */}
             <div className="w-full flex gap-4">
               <button
                 onClick={startCamera}
-                disabled={isScanning || showSuccess || !!cameraError}
+                disabled={isScanning}
                 className="flex-1 flex items-center justify-center space-x-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-all"
               >
                 <Camera className="w-5 h-5" />
-                <span>{isScanning ? 'Scanning...' : showSuccess ? 'Detected!' : 'Start Camera'}</span>
+                <span>{isScanning ? 'Camera Active' : 'Start AR Navigation'}</span>
               </button>
-              {showSuccess && (
+              {isScanning && (
                 <button
                   onClick={handleShowDirections}
                   className="flex-1 flex items-center justify-center space-x-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-all"
@@ -383,9 +332,6 @@ export const CameraSearchPage = () => {
             </button>
           </div>
         </div>
-
-        {/* Hidden Canvas for processing */}
-        <canvas ref={canvasRef} className="hidden" />
       </div>
     </div>
   );
