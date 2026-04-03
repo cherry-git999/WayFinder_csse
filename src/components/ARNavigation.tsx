@@ -43,7 +43,7 @@ export const ARNavigation: React.FC<ARNavigationProps> = ({
         const supported = await navigator.xr?.isSessionSupported('immersive-ar');
         if (!supported) {
           setError(
-            'WebXR AR is not supported on this device. Use an AR-capable phone.'
+            'WebXR AR is not supported on this device. Use an AR-capable phone (iPhone 12+ or Android with ARCore).'
           );
           return;
         }
@@ -56,40 +56,55 @@ export const ARNavigation: React.FC<ARNavigationProps> = ({
         }
 
         sessionRef.current = session;
+        console.log('AR Session acquired:', session);
 
-        // Initialize Three.js scene
-        const scene = new THREE.Scene();
-        sceneRef.current = scene;
+        // Create canvas
+        const canvas = document.createElement('canvas');
+        canvas.setAttribute('style', 'display: block; width: 100%; height: 100%;');
+        containerRef.current?.appendChild(canvas);
+        canvasRef.current = canvas;
 
-        // Create canvas if not exists
-        let canvas = canvasRef.current;
-        if (!canvas) {
-          const newCanvas = document.createElement('canvas');
-          newCanvas.setAttribute('style', 'display: block; width: 100%; height: 100%;');
-          containerRef.current?.appendChild(newCanvas);
-          canvas = newCanvas;
+        // Initialize WebGL context (this must be done with XR device)
+        const gl = canvas.getContext('webgl2', { xrCompatible: true }) as any;
+        if (!gl) {
+          setError('Failed to create WebGL context');
+          return;
         }
 
-        // Create WebGL renderer
+        // Make the canvas fill the screen
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Create WebGL renderer with existing context
         const renderer = new THREE.WebGLRenderer({
+          canvas: canvas,
+          context: gl,
           antialias: true,
           alpha: true,
-          canvas: canvas as HTMLCanvasElement,
         } as any);
+        
         renderer.setClearColor(0x000000, 0);
         renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setSize(window.innerWidth, window.innerHeight, false);
+        
+        // Enable XR rendering
         (renderer.xr as any).enabled = true;
         (renderer.xr as any).setSession(session);
         rendererRef.current = renderer;
+
+        console.log('Renderer initialized');
+
+        // Create scene
+        const scene = new THREE.Scene();
+        sceneRef.current = scene;
 
         // Add lighting
         createArrowLighting(scene);
 
         // Create arrow path
         const arrowGroup = createArrowPath(directions);
-        arrowGroup.position.z = -3; // Place arrows ahead
-        arrowGroup.position.y = 0; // On the floor
+        arrowGroup.position.z = -2.5; // 2.5 meters ahead
+        arrowGroup.position.y = -0.05; // Slightly below eye level (on floor)
         scene.add(arrowGroup);
         arrowGroupRef.current = arrowGroup;
 
@@ -97,45 +112,75 @@ export const ARNavigation: React.FC<ARNavigationProps> = ({
         const floor = createFloorPlane();
         scene.add(floor);
 
+        console.log('Scene objects created');
+
+        // Get reference space for floor-relative positioning
+        let referenceSpace;
+        try {
+          referenceSpace = await (session as any).requestReferenceSpace('local-floor');
+        } catch {
+          referenceSpace = await (session as any).requestReferenceSpace('local');
+        }
+
         // Animation loop
         const renderFrame = (time: number, frame: XRFrame) => {
-          const pose = frame.getViewerPose(
-            frame.session.renderState.baseLayer as any
-          );
-
-          if (pose && pose.views && pose.views.length > 0) {
-            // Create temp camera for rendering
-            const view = pose.views[0];
-            const camera = new THREE.PerspectiveCamera(
-              75,
-              window.innerWidth / window.innerHeight,
-              0.01,
-              1000
-            );
-            camera.projectionMatrix.fromArray(view.projectionMatrix);
-            const transform = new THREE.Matrix4().fromArray(
-              view.transform.inverse.matrix
-            );
-            camera.position.setFromMatrixPosition(transform);
-
-            // Update arrow glow animation
-            if (arrowGroupRef.current) {
-              updateArrowGlow(arrowGroupRef.current, time / 1000);
-
-              // Subtle rotation to make arrows face camera
-              arrowGroupRef.current.lookAt(camera.position);
+          try {
+            const session = frame.session;
+            const baseLayer = session.renderState.baseLayer;
+            
+            if (!baseLayer) {
+              console.warn('No base layer available');
+              return;
             }
 
-            // Render scene
-            renderer.render(scene, camera);
+            const pose = frame.getViewerPose(referenceSpace);
+
+            if (pose && pose.views && pose.views.length > 0) {
+              // Update arrow glow animation
+              if (arrowGroupRef.current) {
+                updateArrowGlow(arrowGroupRef.current, time / 1000);
+              }
+
+              // Render each view
+              pose.views.forEach((view: any) => {
+                const viewport = baseLayer.getViewport(view);
+                
+                if (!viewport) {
+                  console.warn('No viewport for view');
+                  return;
+                }
+
+                // Create a temp camera for this view
+                const camera = new THREE.PerspectiveCamera();
+                camera.projectionMatrix.fromArray(view.projectionMatrix);
+                
+                // Apply view transform
+                const viewMatrix = new THREE.Matrix4().fromArray(
+                  view.transform.inverse.matrix
+                );
+                camera.matrix.copy(viewMatrix);
+                camera.matrix.decompose(
+                  camera.position,
+                  camera.quaternion,
+                  camera.scale
+                );
+
+                // Set viewport and render
+                gl.viewport(viewport.x, viewport.y, viewport.width, viewport.height);
+                renderer.render(scene, camera);
+              });
+            }
+          } catch (err) {
+            console.error('Render frame error:', err);
           }
         };
 
+        console.log('Setting animation loop');
         (renderer.xr as any).setAnimationLoop(renderFrame);
         setIsARReady(true);
       } catch (err: any) {
         console.error('AR initialization error:', err);
-        setError(`AR Error: ${err.message}`);
+        setError(`AR Error: ${err.message || err}`);
       }
     };
 
@@ -144,8 +189,8 @@ export const ARNavigation: React.FC<ARNavigationProps> = ({
     return () => {
       // Cleanup
       if (sessionRef.current) {
-        sessionRef.current.end().catch(() => {
-          console.log('AR session ended');
+        sessionRef.current.end().catch((err) => {
+          console.log('AR session ended:', err);
         });
       }
       if (rendererRef.current) {

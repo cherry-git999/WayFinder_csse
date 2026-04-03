@@ -220,13 +220,17 @@ export function createFloorPlane(width: number = 10, depth: number = 10): THREE.
  * Update arrow glow animation
  */
 export function updateArrowGlow(group: THREE.Group, time: number): void {
-  group.children.forEach((child) => {
+  const pulse = Math.sin(time * 2) * 0.3 + 0.7;
+  
+  group.traverse((child) => {
     if (child instanceof THREE.Mesh) {
       const material = child.material;
-      if (material instanceof THREE.MeshStandardMaterial) {
+      if (material instanceof THREE.MeshStandardMaterial && material.emissive) {
         // Pulsing glow effect
-        const pulse = Math.sin(time * 2) * 0.3 + 0.7;
-        material.emissiveIntensity = 0.8 * pulse;
+        material.emissiveIntensity = ((material.emissive.getHex() !== 0x000000) ? 0.8 : 0) * pulse;
+      } else if (material instanceof THREE.MeshBasicMaterial && material.color) {
+        // Subtle opacity pulse for glow meshes
+        material.opacity = Math.max(0.2, 0.3 * pulse);
       }
     }
   });

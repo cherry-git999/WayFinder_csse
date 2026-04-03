@@ -30,12 +30,13 @@ export async function requestARSession(): Promise<XRSession | null> {
       return null;
     }
 
-    // Request AR session with required features
+    // Request AR session with minimal required features
     const session = await navigator.xr.requestSession('immersive-ar', {
-      requiredFeatures: ['hit-test', 'dom-overlay'],
-      domOverlay: { root: document.body },
+      requiredFeatures: [],
+      optionalFeatures: ['hit-test', 'dom-overlay-for-handheld-ar'],
     } as any);
 
+    console.log('AR Session started successfully');
     return session;
   } catch (error) {
     console.error('Failed to request AR session:', error);
