@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, MapPin, Navigation, ArrowLeft, ArrowRight, AlertCircle, Zap } from 'lucide-react';
-import { useApp } from '../context/AppContext';
+import { Camera, MapPin, ArrowLeft, ArrowRight, AlertCircle, Zap } from 'lucide-react';
 import { locations } from '../data/locations';
 import { ARArrowOverlay } from '../components/ARArrowOverlay';
 import { ARNavigation } from '../components/ARNavigation';
@@ -9,7 +8,6 @@ import { generateDirectionSequence } from '../utils/arrowUtils';
 
 export const CameraSearchPage = () => {
   const navigate = useNavigate();
-  const { setSelectedDestination, setCurrentLocation } = useApp();
   const videoRef = useRef<HTMLVideoElement>(null);
   
   const [step, setStep] = useState<'select-locations' | 'camera'>('select-locations');
@@ -18,6 +16,7 @@ export const CameraSearchPage = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [showARNavigation, setShowARNavigation] = useState(false);
+  const [showLocationNotDetected, setShowLocationNotDetected] = useState(false);
   const streamRef = useRef<MediaStream | null>(null);
 
   // Start real camera feed
@@ -25,6 +24,7 @@ export const CameraSearchPage = () => {
     try {
       setCameraError(null);
       setIsScanning(true);
+      setShowLocationNotDetected(true);
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment' },
@@ -44,6 +44,7 @@ export const CameraSearchPage = () => {
           : 'Failed to open camera. Please check your camera connection.'
       );
       setIsScanning(false);
+      setShowLocationNotDetected(false);
     }
   };
 
@@ -75,15 +76,6 @@ export const CameraSearchPage = () => {
   const handleProceedToCamera = () => {
     if (fromLocation && toLocation) {
       setStep('camera');
-    }
-  };
-
-  const handleShowDirections = () => {
-    if (fromLocation && toLocation) {
-      stopCamera();
-      setCurrentLocation(fromLocation);
-      setSelectedDestination(toLocation);
-      navigate('/navigation');
     }
   };
 
@@ -199,7 +191,7 @@ export const CameraSearchPage = () => {
             {/* To Location */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
-                <Navigation className="w-6 h-6 mr-2 text-blue-600 dark:text-blue-400" />
+                <MapPin className="w-6 h-6 mr-2 text-blue-600 dark:text-blue-400" />
                 To
               </h3>
 
@@ -329,34 +321,25 @@ export const CameraSearchPage = () => {
 
             {/* Buttons */}
             <div className="w-full flex flex-col gap-4">
-              <div className="flex gap-4">
-                <button
-                  onClick={startCamera}
-                  disabled={isScanning}
-                  className="flex-1 flex items-center justify-center space-x-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-all"
-                >
-                  <Camera className="w-5 h-5" />
-                  <span>{isScanning ? 'Camera Active' : 'Start AR Navigation'}</span>
-                </button>
-                {isScanning && (
-                  <button
-                    onClick={handleShowDirections}
-                    className="flex-1 flex items-center justify-center space-x-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-all"
-                  >
-                    <Navigation className="w-5 h-5" />
-                    <span>Show Directions</span>
-                  </button>
-                )}
-              </div>
+              <button
+                onClick={startCamera}
+                disabled={isScanning}
+                className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-all"
+              >
+                <Camera className="w-5 h-5" />
+                <span>{isScanning ? 'Camera Active' : 'Start Camera'}</span>
+              </button>
 
-              {/* AR Navigation Launch Button */}
+              {/* AR Navigation Launch Button - Main Action - COMMENTED OUT */}
+              {/* 
               <button
                 onClick={handleLaunchAR}
-                className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-cyan-600 to-green-600 hover:from-cyan-700 hover:to-green-700 text-white font-bold rounded-lg transition-all"
+                className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-cyan-600 to-green-600 hover:from-cyan-700 hover:to-green-700 text-white font-bold rounded-lg transition-all shadow-lg"
               >
                 <Zap className="w-5 h-5" />
                 <span>→ Start AR Navigation</span>
               </button>
+              */}
             </div>
 
             {/* Edit Locations Button */}
@@ -423,34 +406,25 @@ export const CameraSearchPage = () => {
 
         {/* Mobile Controls */}
         <div className="bg-gradient-to-tr from-gray-900 to-gray-800 px-4 py-4 space-y-3">
-          <div className="flex gap-2">
-            <button
-              onClick={startCamera}
-              disabled={isScanning}
-              className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-all text-sm"
-            >
-              <Camera className="w-4 h-4" />
-              <span>{isScanning ? 'Active' : 'Start'}</span>
-            </button>
-            {isScanning && (
-              <button
-                onClick={handleShowDirections}
-                className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-all text-sm"
-              >
-                <Navigation className="w-4 h-4" />
-                <span>Nav</span>
-              </button>
-            )}
-          </div>
+          <button
+            onClick={startCamera}
+            disabled={isScanning}
+            className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-all text-sm"
+          >
+            <Camera className="w-4 h-4" />
+            <span>{isScanning ? 'Camera Active' : 'Start Camera'}</span>
+          </button>
 
-          {/* AR Navigation Launch Button */}
+          {/* AR Navigation Launch Button - Main Action - COMMENTED OUT */}
+          {/* 
           <button
             onClick={handleLaunchAR}
-            className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-green-600 hover:from-cyan-700 hover:to-green-700 text-white font-bold rounded-lg transition-all text-sm"
+            className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-green-600 hover:from-cyan-700 hover:to-green-700 text-white font-bold rounded-lg transition-all text-sm shadow-lg"
           >
             <Zap className="w-4 h-4" />
             <span>→ Start AR Navigation</span>
           </button>
+          */}
 
           {/* Edit Locations Button */}
           <button
@@ -461,6 +435,33 @@ export const CameraSearchPage = () => {
           </button>
         </div>
       </div>
+
+      {/* Location Not Detected Modal */}
+      {showLocationNotDetected && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-sm mx-4 animate-in fade-in zoom-in duration-300">
+            <div className="text-center">
+              <div className="mb-4 flex justify-center">
+                <div className="bg-red-100 dark:bg-red-900/30 rounded-full p-4">
+                  <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
+                </div>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                Location Not Detected
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Camera is active but location could not be detected. Point the camera at a recognizable location to continue.
+              </p>
+              <button
+                onClick={() => setShowLocationNotDetected(false)}
+                className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-all"
+              >
+                OK, Got It
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
